@@ -1,0 +1,161 @@
+<html>
+    <head>
+        <style>
+            .line {
+                fill: none;
+                stroke: blue;
+            }
+        </style>
+    </head>
+    <body>
+        <script src="d3.js"></script>
+
+        <h3>Data loading</h3>
+        <div id="container"></div>
+
+        <hr>
+
+        <div id="container2"></div>
+        <button onclick="addNew();">Add item</button>
+        <button onclick="removeFrom();">Remove item</button>
+
+        <hr>
+
+        <svg id="cont3" width="640" height="300" style="border: 2px solid black">
+            <g id=body style="transform: translate(50px,40px)"></g>
+            <g id="xAxis"></g>
+            <g id="yAxis"></g>
+        </svg>
+
+        <hr>
+
+        <svg id="cont4" width="300" height="400"></svg>
+
+        <script>
+            
+            // d3.csv('data.csv').then(function(data){
+            //     write("Data laoded!")
+
+            //     let filteredData = data.filter(per => per.Age < 40);
+            //     // let sortedData = data.sort(function(p1,p2){return d3.descending(p1.Age, p2.Age)})
+            //     let sortedData = data.sort((p1,p2) =>  d3.ascending(p1.Age, p2.Age))
+            //     for(let row of sortedData){
+            //         write(row.Name + " " + row.Surname + " - " + row.Age + " yo");
+            //     }
+            // });
+                
+            // d3.csv('data.csv').then(function(data){ showData(data) });
+
+            // write("line after");
+
+            // function write(text){
+            //     d3.select("#container").append("div").text(text);
+            // }
+
+            // let clients = [];
+            // clients.push({name: "Client 0"});
+            // let count = 1;
+            // let container = d3.select("#container2");
+            // let cont3 = d3.select("#body");
+
+            function addNew(){
+                clients.push({name: "Client " + count});
+                count += 1;
+                showData(clients);
+                console.log(count);
+            }
+
+            function removeFrom(){
+                clients = clients.slice(0, -1);
+                count -= 1;
+                showData(clients);
+            }
+
+            function showData(clients){
+                let max = d3.max(clients, d => d.age);
+                let scale = d3.scaleLinear().domain([0, max]).range([0, 500]);
+
+                // let join = container.selectAll("div").data(clients);
+                // join.enter()
+                //     .append("div")
+                //     .text(d => d.name + " - new ")
+                //     .style('background-color', 'blue')
+                //     .style('color', 'white')
+                //     .style('margin', '2px')
+                //     .style('width', d => scale(d.age)+'%');
+                // join.text(d => d.name + " - updated")
+                // join.exit().remove();
+
+                let join2 = cont3.selectAll("rect").data(clients);
+                let scaleNames = d3.scaleBand()
+                                    .domain(clients.map(d => d.name))
+                                    .range([0, 200])
+                                    .padding(0.2);
+
+                join2.enter()
+                    .append("rect")
+                    .attr("fill", "blue")
+                    .attr("width", d => scale(d.age))
+                    .attr("height", scaleNames.bandwidth())
+                    .attr("y", d => scaleNames(d.name))
+                    .attr("padding", 100);
+
+                let xAxis = d3.axisBottom(scale)
+                d3.select("#xAxis")
+                    .style("transform", "translate(50px, 240px)")
+                    .call(xAxis);
+
+                let yAxis = d3.axisLeft(scaleNames);
+                d3.select("#yAxis")
+                    .style("transform", "translate(45px, 40px)")
+                    .call(yAxis);
+            }
+
+
+            let body = d3.select("#cont4")
+            d3.csv("linedata.csv", function(d){
+                return {x: +d.x,
+                        y: +d.y};
+            }).then(presentData)
+
+            function presentData(data){
+
+                var bodyHeight = 200;
+                var bodyWeigth = 300;
+                
+                var maximum_x = d3.max(data, d => d.x);
+                var maximum_y = d3.max(data, d => d.y);
+                console.log(maximum_y);
+                let xScale = d3.scaleLinear()
+                                .domain([0, maximum_x])
+                                .range([0, bodyWeigth])
+
+                let yScale = d3.scaleLinear()
+                                .domain([0, maximum_y])
+                                .range([bodyHeight, 0])
+
+                body.append("g")
+                    .style("transform", "translate(30px, 20px)")
+                    .call(d3.axisLeft(yScale));
+
+                body.append("g")
+                    .style("transform", "translate(30px, 20px)")
+                    .call(d3.axisTop(xScale));
+
+                let lineGenerator = d3.line()
+                                .x(d => xScale(d.x))
+                                .y(d => yScale(d.y));
+
+                body.append("path")
+                        .style("transform", "translate(30px, 0px)")
+                        .datum(data)
+                        .attr("d", lineGenerator).attr("class", "line")
+            }
+            
+
+            
+            
+
+        </script>
+    </body>
+</html>

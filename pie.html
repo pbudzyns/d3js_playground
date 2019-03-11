@@ -1,0 +1,44 @@
+<html>
+    <head>
+
+    </head>
+    <body>
+        <svg id="cont" width="600" height="600"></svg>
+
+        <script src="d3.js"></script>
+        <script>
+            body = d3.select("#cont");
+            d3.csv("sales.csv", (data) => ({country: data.country, sales: +data.sales})).then(showData)
+
+            function showData(data){
+                
+                var bodyWidth = 350;
+                var bodyHeight = 400;
+
+                // console.log(data)
+
+                let pie = d3.pie()
+                        .value(d => d.sales);
+                
+                let colorScale = d3.scaleOrdinal()
+                        .range(d3.schemeCategory10)
+                        .domain(data.map(d => d.country));
+
+                let arc = d3.arc()
+                        .outerRadius(bodyHeight/2)
+                        .innerRadius(bodyHeight/4)
+
+                let g = body.selectAll(".arc")
+                        .data(pie(data))
+                        .enter()
+                        .append("g");
+
+                g.append("path")
+                .style("transform", "translate(300px, 300px)")
+                .attr("d", arc)
+                .attr("fill", d => colorScale(d.data.country))
+            }
+        </script>
+    </body>
+
+</html>

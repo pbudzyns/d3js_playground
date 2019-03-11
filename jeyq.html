@@ -1,0 +1,32 @@
+<html>
+    <body>
+        <h1>Hello header</h1>
+        <h3 id="head">some less important</h3>
+        <p> some text paragrah</p>
+        <button id="btn1">Clicke me</button>
+        <button id="btn2">Show</button>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+        <script>
+            $("#btn1").click(function(){
+                $("#head").hide("fast", function(){
+                    $(this).css("color", "black")
+                });
+            })
+
+            $("#btn2").click(function(){
+                $("#head").show("slow", function(){
+                    $(this).css("color", "lime")
+                });
+            })
+
+            $("p").hover(function(){
+                $("p").css("color", "red");
+            },
+            function(){
+                $("p").css("color", "green")
+            })
+        </script>
+
+    </body>
+</html>

@@ -1,0 +1,39 @@
+<html>
+    <body>
+
+        <ul id="first-list">
+            <li>Item 1</li>
+            <li>Item 2</li>
+        </ul>
+
+        <p> hello here boro</p>
+
+        <button onclick="action1()">Add new item</button>
+        <button onclick="action2()">Remove all elements</button>
+        <button onclick="action3()">Remove last element</button>
+
+        <script src="d3.js"></script>
+        <script>
+
+            let list = d3.select("#first-list");
+
+            function count(){
+                return list.selectAll("li").size();
+            }
+
+            function action1(){
+                var c = count() + 1;
+                list.append("li").text("Item " + c);
+            }
+
+            function action2(){
+                list.selectAll("li").remove();
+            }
+
+            function action3(){
+                list.select("li:last-child").remove();
+            }
+        </script>
+
+    </body>
+</html>
