@@ -1,0 +1,76 @@
+<html>
+    <head>
+
+    </head>
+    <body>
+        <h1>Welcome to World Map</h1>
+        <svg id="map"></svg>
+
+        <script src="../d3.js"></script>
+        <script>
+            
+            var mapHeight = 800;
+            var mapWidth = 1500;
+
+            let body = d3.select("#map");
+            body.attr("width", mapWidth).attr("height", mapHeight)
+
+            // d3.json("countries.geo.json").then(showMap);
+            Promise.all([d3.csv("data.csv"), d3.json("countries.geo.json")]).then(mapWithPoints);
+
+            function mapWithPoints(datasource){
+                let data = datasource[0];
+                let mapInfo = datasource[1];
+
+                let projection = d3.geoNaturalEarth1()
+                                    .scale(300)
+                                    .translate([mapWidth/2, mapHeight/2]);
+
+                let path = d3.geoPath()
+                                .projection(projection);
+
+                
+
+                body.selectAll("path")
+                    .data(mapInfo.features)
+                    .enter()
+                    .append("path")
+                    .attr("d", d => path(d))
+                    .attr("fill", "#eee")
+                    .attr("stroke", "black")
+
+                body.selectAll("circle")
+                    .data(data)
+                    .enter()
+                    .append("circle")
+                    .attr("r", "3")
+                    .attr("cx", d => projection([+d.Longitude, +d.Latitude])[0])
+                    .attr("cy", d => projection([+d.Longitude, +d.Latitude])[1])
+                    .attr("fill", "#0055aa")
+                    .attr("opacity", 0.3)
+            }
+
+            function showMap(data){
+                // console.log(data)
+
+                let projection = d3.geoNaturalEarth1()
+                                    .scale(300)
+                                    .translate([mapWidth/2, mapHeight/2]);
+
+                let path = d3.geoPath()
+                                .projection(projection);
+
+                body.selectAll("path")
+                    .data(data.features)
+                    .enter()
+                    .append("path")
+                    .attr("d", d => path(d))
+                    .attr("stroke", "black")
+                    .attr("fill", "none")
+
+                
+            }
+
+        </script>
+    </body>
+</html>
