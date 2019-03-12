@@ -82,13 +82,16 @@
             return result
         }
 
-        function showData() {
+        function showData(mapStore) {
             //Get the routes from our store variable
-            let routes = store.routes
+            let routes = mapStore.routes;
+            // console.log(mapStore.geoJSON)
             // Compute the number of routes per airline.
-            let airlines = groupByAirline(store.routes);
-            console.log(airlines)
+            let airlines = groupByAirline(routes);
+            // console.log(airlines)
             drawAirlinesChart(airlines);
+            drawMap(mapStore.geoJSON);
+            drawAirports(routes);
         }
 
         function drawAirlinesChart(airlines) {
@@ -184,7 +187,116 @@
                 //TODO: Append a g tag to the container, translate it based on the margins and call the axisY axis to draw the left axis.
                 }
 
-            loadData().then(showData);
+            // loadData().then(showData);
+
+            let mapStore = {};
+            function loadMapData(){
+                return Promise.all([
+                    d3.csv("routes.csv"),
+                    d3.json("maps/countries.geo.json")
+                ]).then(datasets => {
+                    mapStore.routes = datasets[0];
+                    mapStore.geoJSON = datasets[1];
+                    // console.log(mapStore.geoJSON)
+                    return mapStore;
+                })
+            }
+
+            function getMapConfig(){
+                let width = 600;
+                let height = 400;
+                let container = d3.select("#Map")
+                                    .attr("width", width)
+                                    .attr("height", height);
+                return {width, height, container};               
+            }
+
+            function getMapProjection(config){
+                let {width, height} = config;
+                
+                let projection = d3.geoMercator()
+                                    .scale(97)
+                                    .translate([width/2, height/2]);
+
+                // mapStore.projection = projection;
+
+                return projection;
+            }
+
+            function drawBaseMap(container, geoJSON, projection){
+                let path = d3.geoPath()
+                            .projection(projection)
+
+                // console.log(geoJSON)
+                container.selectAll("path")
+                        .data(geoJSON.features)
+                        .enter()
+                        .append("path")
+                        .attr("d", d => path(d))
+                        .attr("stroke", "#ccc")
+                        .attr("fill", "#eee")
+            }
+
+            function drawMap(geoJSON){
+                let config = getMapConfig();
+                // console.log(geoJSON.features)
+                let projection = getMapProjection(config);
+                // console.log(geoJSON)
+                drawBaseMap(config.container, geoJSON, projection);
+            }
+
+            loadMapData().then(showData);
+
+            function groupByAirport(data){
+
+                let result = data.reduce((result, d) => {
+                    let currentDest = result[d.DestAirportID] || {
+                        "AirportID": d.DestAirportID,
+                        "Airport": d.DestAirport,
+                        "Latitude": +d.DestLatitude,
+                        "Longitude": +d.DestLongitude,
+                        "City": d.DestCity,
+                        "Country": d.DestCountry,
+                        "Count": 0,
+                    };
+                    currentDest.Count += 1;
+                    result[d.DestAirportID] = currentDest;
+
+                    let currentSource = result[d.SourceAirportID] || {
+                        "AirportID": d.SourceAirportID,
+                        "Airport": d.SourceAirport,
+                        "Latitude": +d.SourceLatitude,
+                        "Longitude": +d.SourceLongitude,
+                        "City": d.SourceCity,
+                        "Country": d.SourceCountry,
+                        "Count": 0,
+                    };
+                    currentSource.Count += 1;
+                    result[d.SourceAirportID] = currentSource;
+
+                    return result;
+                }, {})
+
+                result = Object.keys(result).map(key => result[key]);
+                return result;
+            }
+
+            function drawAirports(airports){
+                let config = getMapConfig();
+                let projection = getMapProjection(config);
+                let container = config.container;
+
+                airports = groupByAirport(airports);
+                container.selectAll("circle")
+                    .data(airports)
+                    .enter()
+                    .append("circle")
+                    .attr("r", "1")
+                    .attr("cx", d => projection([d.Longitude, d.Latitude])[0])
+                    .attr("cy", d => projection([d.Longitude, d.Latitude])[1])
+                    .attr("fill", "#2a5599")
+                    .attr("opacity", "0.8")
+            }
     </script>
 </body>
 
