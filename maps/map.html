@@ -4,29 +4,39 @@
     </head>
     <body>
         <h1>Welcome to World Map</h1>
+        <button onclick="rotateMapR();">Rotate x</button>
+        <button onclick="rotateMapT();">Rotate y</button>
+        <input type="range" min="-180" max="180" value="50" oninput="rotateMapR(this.value)" >
         <svg id="map"></svg>
 
         <script src="../d3.js"></script>
+        <script src="https://d3js.org/d3-geo.v1.min.js"></script>
+        <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
         <script>
-            
+            var aitoff = d3.geoAitoff();
             var mapHeight = 800;
             var mapWidth = 1500;
 
             let body = d3.select("#map");
-            body.attr("width", mapWidth).attr("height", mapHeight)
+            body.attr("width", mapWidth).attr("height", mapHeight).attr("fill", "#333")
 
             // d3.json("countries.geo.json").then(showMap);
             Promise.all([d3.csv("data.csv"), d3.json("countries.geo.json")]).then(mapWithPoints);
+
+            var projection;
+            var path;
 
             function mapWithPoints(datasource){
                 let data = datasource[0];
                 let mapInfo = datasource[1];
 
-                let projection = d3.geoNaturalEarth1()
+                // let projection = d3.geoNaturalEarth1()
+                projection = d3.geoOrthographic()
                                     .scale(300)
+                                    .rotate([50,-30,0])
                                     .translate([mapWidth/2, mapHeight/2]);
 
-                let path = d3.geoPath()
+                path = d3.geoPath()
                                 .projection(projection);
 
                 
@@ -48,6 +58,30 @@
                     .attr("cy", d => projection([+d.Longitude, +d.Latitude])[1])
                     .attr("fill", "#0055aa")
                     .attr("opacity", 0.3)
+            }
+
+            var velocity = 10;
+            var currentLambda = 0;
+            var currentPhi = 0;
+
+            function rotateMapR(value){
+                currentLambda = value;
+                updateMap();
+            }
+
+            function rotateMapT(){
+                currentPhi += velocity;
+                updateMap();
+            }
+
+            function updateMap(){
+                let rotation = [currentLambda, currentPhi, 0];
+                projection.rotate(rotation);
+                path.projection(projection);
+                body.selectAll("path").attr("d", d => path(d));
+                body.selectAll("circle")
+                    .attr("cx", d => projection([+d.Longitude, +d.Latitude])[0])
+                    .attr("cy", d => projection([+d.Longitude, +d.Latitude])[1]);
             }
 
             function showMap(data){
