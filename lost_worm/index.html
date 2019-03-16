@@ -7,12 +7,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" media="screen" href="main.css">
     <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+        #logo {
+            top: 0px;
+            right: 20px;
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            font-size: 100px;
+            position: absolute;
+            color: transparent;
+            text-shadow: 0 0 5px #003366;
+        }
+    </style>
 </head>
 <body id="page">
+    <div id="logo">Lost Worm</div>
     <svg id="world" width="800" height="700"></svg>
 
+    
+
     <script>
-        let height = document.getElementById("page").clientHeight;
+        // console.log(window.innerHeight)
+        // let height = document.getElementById("page").clientHeight;
+        let height = window.innerHeight - 20;
         let width = document.getElementById("page").clientWidth;
 
         let container = d3.select("#world")
@@ -35,13 +51,13 @@
 
         window.addEventListener("keydown", e => keypressHandler(e))
 
-        let sLength = 500;
-        let sSize = 20;
-        let headSize = 20;
+        const sLength = 400;
+        const sSize = 20;
+        const headSize = 30;
+        const controlForce = 0.2;
+        const sSpeed = 12;
 
-        let sSpeed = 10;
         let sDirection = Math.PI*2;
-        let controlForce = 0.2;
         let freeRun = true;
         let lastActivityTime = undefined;
 
@@ -89,9 +105,13 @@
                         .domain([0, 1])
                         .range([-1, 1])
 
+        let opacityScale = d3.scaleLinear()
+                            .domain([0, sLength])
+                            .range([0.9, 1])
+
 
         let marginLimit = 100;
-        let criticalLimit = 100;
+        let criticalLimit = 2 * headSize;
 
         function move(){
             if(freeRun){
@@ -137,6 +157,7 @@
                 .attr("cy", d => d.y)
                 .attr("r", d => tailScale(d.idx))
                 .attr("fill", d => colorScale(d.idx))
+                // .attr("opacity", d => opacityScale(d.idx))
 
             requestAnimationFrame(move)
         }
