@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Lost Worm...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="screen" href="main.css">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
+<body id="page">
+    <svg id="world" width="800" height="700"></svg>
+
+    <script>
+        let height = document.getElementById("page").clientHeight;
+        let width = document.getElementById("page").clientWidth;
+
+        let container = d3.select("#world")
+                            .attr("height", height)
+                            .attr("width", width)
+
+        function keypressHandler(e){
+            lastActivityTime = new Date().getTime();
+            freeRun = false;
+            switch(e.keyCode){
+                case 37:
+                    sDirection += controlForce;
+                    // console.log("keyPressed")
+                    break;
+                case 39:
+                    sDirection -= controlForce;
+                    break;
+            }
+        }
+
+        window.addEventListener("keydown", e => keypressHandler(e))
+
+        let sLength = 500;
+        let sSize = 20;
+        let headSize = 20;
+
+        let sSpeed = 10;
+        let sDirection = Math.PI*2;
+        let controlForce = 0.2;
+        let freeRun = true;
+        let lastActivityTime = undefined;
+
+        function getPoints(size, length){
+            let points = [];
+            for(var i=0;i<length;i++){
+                points.push({x:width/2,y:height/2, idx:i});
+            }
+            return points;
+        }
+
+        let tailScale = d3.scaleLinear()
+                            .domain([0, sLength])
+                            .range([0, headSize])
+
+        let points = getPoints(sSize, sLength);
+
+        let visualSnake = container.selectAll("circle").data(points)
+
+        visualSnake.enter()
+            .append("circle")
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y)
+            .attr("r", d => tailScale(d.idx))
+
+        function getXYSpeed(angle){
+            let xVelocity = Math.sin(angle) * sSpeed;
+            let yVelocity = Math.cos(angle) * sSpeed;
+            return {xVelocity, yVelocity}
+        }
+
+        let counter = 0;
+        let maxCouter = 50;
+        let dirLimit = Math.PI / 16;
+
+        let dirScale = d3.scaleLinear()
+                            .range([-(dirLimit), dirLimit])
+                            .domain([0, maxCouter])
+
+        let colorScale = d3.scaleLinear()
+                            .domain([sLength, 0])
+                            .range([d3.rgb("#003366"), d3.rgb('#FFF500')])
+
+        let scale = d3.scaleLinear()
+                        .domain([0, 1])
+                        .range([-1, 1])
+
+        function move(){
+
+
+            if(freeRun){
+                counter += 1;
+                if(counter >= maxCouter){counter = 0;}
+                sDirection += dirScale(counter);
+            } else {
+                let currentTime = new Date().getTime();
+                if(currentTime - lastActivityTime > 500){
+                    freeRun = true;
+                }
+            }
+
+            
+            
+            points.shift()
+            let head = points[points.length-1];
+
+            if(head.x + headSize >= width || head.x - headSize <= 0 || head.y + headSize >= height || head.y - headSize <= 0){
+                sDirection += Math.PI / 2 * scale(Math.random() + 0.01)
+            }
+            
+            let {xVelocity, yVelocity} = getXYSpeed(sDirection);
+
+            points.push({x:head.x + xVelocity, y:head.y+yVelocity, idx:sLength+1})
+
+            for(let p of points){
+                p.idx -= 1;
+            }
+
+            
+            let circles = container.selectAll("circle").data(points)
+
+            circles.attr("cx", d => d.x)
+                .attr("cy", d => d.y)
+                .attr("r", d => tailScale(d.idx))
+                .attr("fill", d => colorScale(d.idx))
+
+            requestAnimationFrame(move)
+        }
+
+        move()
+        
+    </script>
+</body>
+</html>
