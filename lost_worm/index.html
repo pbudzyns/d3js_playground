@@ -45,6 +45,12 @@
         let freeRun = true;
         let lastActivityTime = undefined;
 
+        let points = getPoints(sSize, sLength);
+
+        let tailScale = d3.scaleLinear()
+                            .domain([0, sLength])
+                            .range([0, headSize])
+
         function getPoints(size, length){
             let points = [];
             for(var i=0;i<length;i++){
@@ -53,11 +59,11 @@
             return points;
         }
 
-        let tailScale = d3.scaleLinear()
-                            .domain([0, sLength])
-                            .range([0, headSize])
-
-        let points = getPoints(sSize, sLength);
+        function getXYSpeed(angle){
+            let xVelocity = Math.sin(angle) * sSpeed;
+            let yVelocity = Math.cos(angle) * sSpeed;
+            return {xVelocity, yVelocity}
+        }
 
         let visualSnake = container.selectAll("circle").data(points)
 
@@ -66,12 +72,6 @@
             .attr("cx", d => d.x)
             .attr("cy", d => d.y)
             .attr("r", d => tailScale(d.idx))
-
-        function getXYSpeed(angle){
-            let xVelocity = Math.sin(angle) * sSpeed;
-            let yVelocity = Math.cos(angle) * sSpeed;
-            return {xVelocity, yVelocity}
-        }
 
         let counter = 0;
         let maxCouter = 50;
@@ -89,9 +89,11 @@
                         .domain([0, 1])
                         .range([-1, 1])
 
+
+        let marginLimit = 100;
+        let criticalLimit = 100;
+
         function move(){
-
-
             if(freeRun){
                 counter += 1;
                 if(counter >= maxCouter){counter = 0;}
@@ -102,28 +104,36 @@
                     freeRun = true;
                 }
             }
-
-            
             
             points.shift()
             let head = points[points.length-1];
 
-            if(head.x + headSize >= width || head.x - headSize <= 0 || head.y + headSize >= height || head.y - headSize <= 0){
-                sDirection += Math.PI / 2 * scale(Math.random() + 0.01)
+            if (head.x > width + criticalLimit){
+                sDirection = Math.PI * (3/2);
+            } else if ( head.x < -(criticalLimit)){
+                sDirection = Math.PI / 2;
+            } else if ( head.y < -(criticalLimit)){
+                sDirection = Math.PI * 2;
+            } else if ( head.y > height + criticalLimit){
+                sDirection = Math.PI;
+            } else if(head.x + headSize >= width - marginLimit || head.x - headSize <= marginLimit
+                 || head.y + headSize >= height - marginLimit || head.y - headSize <= marginLimit){
+                // sDirection += Math.PI / 2 * scale(Math.random() + 0.01)
+                sDirection += 0.1;
             }
+
+
             
             let {xVelocity, yVelocity} = getXYSpeed(sDirection);
-
             points.push({x:head.x + xVelocity, y:head.y+yVelocity, idx:sLength+1})
 
             for(let p of points){
                 p.idx -= 1;
             }
 
-            
-            let circles = container.selectAll("circle").data(points)
-
-            circles.attr("cx", d => d.x)
+            container.selectAll("circle")
+                .data(points)
+                .attr("cx", d => d.x)
                 .attr("cy", d => d.y)
                 .attr("r", d => tailScale(d.idx))
                 .attr("fill", d => colorScale(d.idx))
