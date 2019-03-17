@@ -51,11 +51,11 @@
 
         window.addEventListener("keydown", e => keypressHandler(e))
 
-        const sLength = 400;
+        const sLength = 50;
         const sSize = 20;
-        const headSize = 30;
+        const headSize = 25;
         const controlForce = 0.2;
-        const sSpeed = 12;
+        const sSpeed = 10;
 
         let sDirection = Math.PI*2;
         let freeRun = true;
@@ -70,7 +70,7 @@
         function getPoints(size, length){
             let points = [];
             for(var i=0;i<length;i++){
-                points.push({x:width/2,y:height/2, idx:i});
+                points.push({x:width/2,y:height/2});
             }
             return points;
         }
@@ -87,7 +87,7 @@
             .append("circle")
             .attr("cx", d => d.x)
             .attr("cy", d => d.y)
-            .attr("r", d => tailScale(d.idx))
+            .attr("r", (d,i) => tailScale(i))
 
         let counter = 0;
         let maxCouter = 50;
@@ -145,18 +145,14 @@
 
             
             let {xVelocity, yVelocity} = getXYSpeed(sDirection);
-            points.push({x:head.x + xVelocity, y:head.y+yVelocity, idx:sLength+1})
-
-            for(let p of points){
-                p.idx -= 1;
-            }
+            points.push({x:head.x + xVelocity, y:head.y+yVelocity})
 
             container.selectAll("circle")
                 .data(points)
                 .attr("cx", d => d.x)
                 .attr("cy", d => d.y)
-                .attr("r", d => tailScale(d.idx))
-                .attr("fill", d => colorScale(d.idx))
+                .attr("r", (d, i) => tailScale(i))
+                .attr("fill", (d, i) => colorScale(i))
                 // .attr("opacity", d => opacityScale(d.idx))
 
             requestAnimationFrame(move)
