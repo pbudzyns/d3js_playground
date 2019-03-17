@@ -28,7 +28,9 @@
     <script>
         // console.log(window.innerHeight)
         // let height = document.getElementById("page").clientHeight;
-        let height = window.innerHeight - 20;
+        var tmp = (window.getComputedStyle(document.body).getPropertyValue('margin-top'))
+        console.log(parseInt(tmp))
+        let height = window.innerHeight - parseInt(tmp)*2 - 3;
         let width = document.getElementById("page").clientWidth;
 
         let container = d3.select("#world")
@@ -112,21 +114,29 @@
 
         let marginLimit = 100;
         let criticalLimit = 2 * headSize;
+        let closeToBorder = false;
+
+        function isCloseToBorder(head){
+            return (head.x + headSize >= width - marginLimit || head.x - headSize <= marginLimit
+                 || head.y + headSize >= height - marginLimit || head.y - headSize <= marginLimit)
+        }
 
         function move(){
+
+            points.shift()
+            let head = points[points.length-1];
+            closeToBorder = isCloseToBorder(head);
+
             if(freeRun){
                 counter += 1;
                 if(counter >= maxCouter){counter = 0;}
                 sDirection += dirScale(counter);
-            } else {
+            } else if(!freeRun){
                 let currentTime = new Date().getTime();
                 if(currentTime - lastActivityTime > 500){
                     freeRun = true;
                 }
             }
-            
-            points.shift()
-            let head = points[points.length-1];
 
             if (head.x > width + criticalLimit){
                 sDirection = Math.PI * (3/2);
@@ -136,8 +146,7 @@
                 sDirection = Math.PI * 2;
             } else if ( head.y > height + criticalLimit){
                 sDirection = Math.PI;
-            } else if(head.x + headSize >= width - marginLimit || head.x - headSize <= marginLimit
-                 || head.y + headSize >= height - marginLimit || head.y - headSize <= marginLimit){
+            } else if(closeToBorder){
                 // sDirection += Math.PI / 2 * scale(Math.random() + 0.01)
                 sDirection += 0.1;
             }
@@ -151,6 +160,7 @@
                 .data(points)
                 .attr("cx", d => d.x)
                 .attr("cy", d => d.y)
+                // .transition()
                 .attr("r", (d, i) => tailScale(i))
                 .attr("fill", (d, i) => colorScale(i))
                 // .attr("opacity", d => opacityScale(d.idx))

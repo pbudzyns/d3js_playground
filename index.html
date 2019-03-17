@@ -50,6 +50,7 @@
     <script src="d3.js"></script>
     <script>
         let store = {};
+        let selectedAirline = undefined;
 
         function loadData(){
             let promise = d3.csv("routes.csv");
@@ -154,13 +155,40 @@
             let bars = body.selectAll(".bar").data(airlines)
                 //TODO: Use the .data method to bind the airlines to the bars (elements with class bar)
 
+            let inactiveColor = "#2a5599";
+            let activeColor = "#992a2a";
+            
             //Adding a rect tag for each airline
-            bars.enter().append("rect")
+            bars.enter()
+                .append("rect")
+                .attr("id", "airlineBar")
                 .attr("height", yScale.bandwidth())
                 .attr("y", (d) => yScale(d.AirlineName))
                 //TODO: set the width of the bar to be proportional to the airline count using the xScale
                 .attr("width", (d) => xScale(d.Count))
-                .attr("fill", "#2a5599")
+                .attr("fill", inactiveColor)
+                .on("click", function(d){
+                    resetMap();
+                    
+                    if(selectedAirline == d.AirlineID){
+                        selectedAirline = null;
+                        d3.selectAll("#airlineBar").attr("fill", inactiveColor);
+                        drawRoutes(null)
+                    } else {
+                        selectedAirline = d.AirlineID;
+                        d3.selectAll("#airlineBar").attr("fill", cd => cd.AirlineID == selectedAirline ? activeColor : inactiveColor);
+                        // d3.select(this).attr("")
+                        drawRoutes(selectedAirline);
+                    }
+                })
+                // .on("mouseenter", function(d){
+                //     d3.select(this).attr("fill", activeColor);
+                //     drawRoutes(d.AirlineID);
+                // })
+                // .on("mouseleave", function(d){
+                //     d3.select(this).attr("fill", inactiveColor);
+                //     drawRoutes(null)
+                // })
             }
 
             function drawAxesAirlinesChart(airlines, scales, config){
@@ -205,20 +233,23 @@
             function getMapConfig(){
                 let width = 600;
                 let height = 400;
+                let initialScale = 97;
                 let container = d3.select("#Map")
                                     .attr("width", width)
                                     .attr("height", height);
-                return {width, height, container};               
+                return {width, height, initialScale, container};               
             }
 
             function getMapProjection(config){
-                let {width, height} = config;
+                let {width, height, initialScale} = config;
                 
                 let projection = d3.geoMercator()
-                                    .scale(97)
+                                    .scale(initialScale)
                                     .translate([width/2, height/2]);
 
-                // mapStore.projection = projection;
+                mapStore.projection = projection;
+                // mapStore.projection.center([width/2, height/2])
+                mapStore.initialScale = initialScale;
 
                 return projection;
             }
@@ -235,6 +266,14 @@
                         .attr("d", d => path(d))
                         .attr("stroke", "#ccc")
                         .attr("fill", "#eee")
+            }
+
+            function redrawMap(projection){
+                let path = d3.geoPath()
+                            .projection(projection)
+                
+                d3.select("#Map").selectAll("path")
+                    .attr("d", d => path(d))
             }
 
             function drawMap(geoJSON){
@@ -297,6 +336,97 @@
                     .attr("fill", "#2a5599")
                     .attr("opacity", "0.8")
             }
+
+            function redrawAirports(projection){
+                d3.select("#Map")
+                    .selectAll("circle")
+                    .attr("cx", d => projection([d.Longitude, d.Latitude])[0])
+                    .attr("cy", d => projection([d.Longitude, d.Latitude])[1])
+            }
+
+            function drawRoutes(AirlineID){
+                // console.log("drawing for: " + AirlineID)
+                let routes = mapStore.routes.filter(route => route.AirlineID === AirlineID);
+                let projection = mapStore.projection;
+
+                let container = d3.select("#Map");
+
+                container.selectAll("line").remove()
+
+                let bindedData = container.selectAll("line")
+                                    .data(routes, d => d.ID)
+
+                bindedData.enter()
+                    .append("line")
+                    .attr("x1", d => projection([d.SourceLongitude, d.SourceLatitude])[0])
+                    .attr("y1", d => projection([d.SourceLongitude, d.SourceLatitude])[1])
+                    .attr("x2", d => projection([d.DestLongitude, d.DestLatitude])[0])
+                    .attr("y2", d => projection([d.DestLongitude, d.DestLatitude])[1])
+                    .attr("stroke", "#992a2a")
+                    .attr("opacity", "0.2")
+
+                bindedData.exit().remove()
+
+            }
+
+            function resetMap(){
+                mapStore.projection.scale(mapStore.initialScale);
+                mapStore.projection.translate([mapWidth/2, mapHeight/2]);
+                redrawAirports(mapStore.projection);
+                redrawMap(mapStore.projection)
+            }
+
+            let lastScale = 0;
+            let lastTrans = undefined;
+            let mapWidth = 600
+            let mapHeight = 400
+            let tmpX = mapWidth/2
+            let tmpY = mapHeight/2
+
+            function redraw(){
+                // console.log(mapStore.projection([2, 3]))
+                // console.log(d3.event.transform["k"])
+                let currScale = (d3.event.transform["k"] ) * mapStore.initialScale;
+                let currTrans = d3.event.transform
+                console.log(d3.event.transform)
+                
+                // console.log(currTrans)
+                if (currScale != lastScale){
+                    mapStore.projection.scale(currScale)
+                } else {
+                    // console.log(mapStore.projection.translate)
+                    // console.log([mapWidth])
+                    dx = currTrans[1] - lastTrans[1]
+                    dy = currTrans[2] - lastTrans[2]
+                    
+                    mapStore.projection.translate([dx, dy])
+
+                }
+                // console.log(mapStore.projection.center())
+                drawRoutes(selectedAirline)
+                redrawMap(mapStore.projection)
+                redrawAirports(mapStore.projection)
+                lastScale = currScale;
+                lastTrans = currTrans;
+
+            }
+
+            function redrawRoutes(transform){
+                d3.select("#Map")
+                    .selectAll("lines")
+                    .attr("x1", d => projection([d.SourceLongitude, d.SourceLatitude])[0])
+                    .attr("y1", d => projection([d.SourceLongitude, d.SourceLatitude])[1])
+                    .attr("x2", d => projection([d.DestLongitude, d.DestLatitude])[0])
+                    .attr("y2", d => projection([d.DestLongitude, d.DestLatitude])[1])
+            }
+
+            function addZoom(){
+                let zoom = d3.zoom();
+                d3.select("#Map").call(zoom);
+
+                zoom.on("zoom", redraw)
+            }
+            addZoom();
     </script>
 </body>
 
